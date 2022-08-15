@@ -21,11 +21,11 @@ Após definido o ID, será apresentado um menu de opções:
     [0] - Encerrar
     
 Digitando "1" deverá ser digitado o ID do roteador de destino e a mensagem que será enviada. Inseridos esses dados, será retornado ao menu.
-Digitando "2" serão listados os roteadores disponives para comunicação.
-Digitanto "0" os processos serão encerrado e a execução finalizada.
+Digitando "2" serão listados os roteadores disponíves para comunicação.
+Digitando "0" os processos serão encerrados e a execução finalizada.
 
-Para realizar a comunicação entre dois roteadores é necessário duas instâncias do programa executadas e com IDs diferentes.
+Para realizar a comunicação entre dois roteadores é necessário ter duas instâncias do programa executadas e com IDs diferentes.
 
 Observações:
-- IDs atribuidos aos oteadores devem existir nos arquivos de configuração.
-- Na implementação atual não é possivel mapear a rede para comuniação em mais de um salto ou identificar roteadores ativados ou desativados.
+- IDs atribuídos aos roteadores devem existir nos arquivos de configuração.
+- Na implementação atual não é possível mapear a rede para comunicação em mais de um salto ou identificar roteadores ativados ou desativados.
