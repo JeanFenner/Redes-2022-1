@@ -9,17 +9,18 @@ Programação Socket e Roteamento
 Simulação de protocolo de roteamento entre processos roteadores com sockets UDP.
 
 Instruções
-Compilar os arquivos "terminalid1.c" e "terminalid2.c" e executa-los simultaneamente.
-Ao executar, será apresentado um menu de opções:
+Compilação:
+    gcc router.c router.h -lpthread -o router
+
+Execução:
+Ao executar o arquivo 'router' será requisitado um ID* para o roteador
+    * ID deve existir nos arquivos de configuração
+    
+Após definido o ID, será apresentado um menu de opções:
     [1] - Enviar mensagem
     [2] - Listar destinos
-    [9] - Receive
-    [0] - Encerar
-
-Na implementação atual, os dois processos atuam exclusivamente como servidor ou excludivamente como cliente.
-Digitando "1" o processo entrara em modo cliente, será solicitado o identificador de um rotedor destino (Não implementado) e em seguida uma mensagem a ser transmitida ao processo atualndo como servidor. Atualemente uma única mensagem poderá ser transmitida e o processo retornará ao menu.
-Digitando "2" serão listados os processos disponives para comunicação (Não implementado).
-Digitando "9" o processo entrara em modo servidor Atualmente o processor aguardará o recebimento de uma única mensagem e retornará ao menu.
-Digitanto "0" o processo será encerrado e finalizado.
-
-Para que a mensagem seja transmitida é preciso que um processo enteja em modo servidor ("Receive").
+    [0] - Encerrar
+    
+Digitando "1" deverá ser digitado o ID do roteador de destino e a mensagem que será enviada. Inseridos esses dados, será retornado ao menu.
+Digitando "2" serão listados os roteadores disponives para comunicação.
+Digitanto "0" os processos serão encerrado e a execução finalizada.
