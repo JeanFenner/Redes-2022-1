@@ -21,69 +21,40 @@ Simulação de protocolo de roteamento entre processos roteadores com sockets UD
 #include <sys/socket.h>
 #include "router.h"
 
-int main() {
-    pthread_t rt_listen;
+configs *configuration;
 
-    int cont=1, opc, dest, id, port, err;
-    char msg[BUFLEN], ip[15];
-    rout_tab *temp=NULL;
-    configs *cfg = init_cfg();
+int main() {
+    pthread_t t_listen;
+    pthread_t t_terminal;
+
+    int id, err;
+
+    configuration = init_cfg();
 
     printf("Starting...\n\n");
     printf("ID: ");
-    scanf("%d", &id);
+    scanf("%d", &configuration->id);
 
-    cfg = config(cfg, id);
+    configuration = config(configuration);
 
-    err = pthread_create(&rt_listen, NULL, receiver, (void *)cfg->port);
+    err = pthread_create(&t_listen, NULL, receiver, NULL);
     if(err) {
         printf("Receiver Error!");
         exit(-1);
     }
     
-    while(cont) {
-
-        printf("\n\tMENU\nROUTER %d: %s\n", id, cfg->ip);
-        printf("[1] - Enviar mensagem\n");
-        printf("[2] - Listar destinos\n");
-        printf("[0] - Encerrar\n");
-        scanf("%d", &opc);
-
-        switch(opc) {
-            case(1):
-                printf("Destino: ");
-                scanf("%d", &dest);
-                printf("Mensagem: ");
-                scanf("%s", msg);
-                sender(msg, get_dest_port(dest, cfg->r_t), get_dest_ip(dest, cfg->r_t));
-                break;
-            case(2):
-                printf("Destinos\n");
-                temp = cfg->r_t;
-                while(temp) {
-                    printf("ID: %d\t", temp->id);
-                    printf("IP: %s\t", temp->ip);
-                    printf("PORT: %d\t", temp->port);
-                    printf("COST: %d\n", temp->cost);
-                    temp = temp->next;
-                }
-                break;
-            case(0):
-                cont = 0;
-                break;
-            default:
-                printf("Opcao invalida!\n");
-                break;
-        }
+    err = pthread_create(&t_terminal, NULL, terminal, NULL);
+    if(err) {
+        printf("Receiver Error!");
+        exit(-1);
     }
 
-    printf("Encerrando...\n");
-    pthread_cancel(rt_listen);
+    pthread_join(t_terminal, 0);
+    pthread_cancel(t_listen);
     pthread_exit(NULL);
 
     return 0;
 }
-
 
 dist_vec *create_d_v(dist_vec *d_v, int id, int cost) {                          // Criaçao de objetos Vetor-Distancia
     dist_vec *new = (dist_vec *)malloc(sizeof(dist_vec));
@@ -95,13 +66,12 @@ dist_vec *create_d_v(dist_vec *d_v, int id, int cost) {                         
     return new;
 }
 
-rout_tab *create_r_t(rout_tab *r_t, int id, char ip[15], int port, int cost) {   // Criaçao de objetos Tabela de Roteamento
+rout_tab *create_r_t(rout_tab *r_t, int id, char ip[15], int port) {   // Criaçao de objetos Tabela de Roteamento
     rout_tab *new = (rout_tab *)malloc(sizeof(rout_tab));
 
     new->id = id;
     strcpy(new->ip, ip);
     new->port = port;
-    new->cost = cost;
     new->next = r_t;
 
     return new;
@@ -152,6 +122,52 @@ char *get_dest_ip(int dest, rout_tab *r_t) {    // Obter IP da Tabela de Roteame
     return "0";
 }
 
+configs *config(configs *cfg) {
+    FILE* links = fopen("links.config", "r");
+    FILE* routers = fopen("routers.config", "r");
+    int id_o, id_d, cost, x, port, ip_i[4];
+    char c, *temp, ip_c[15], dump;
+
+    if(links) {
+        while(c!=(EOF)) {
+            fscanf(links, "%d %d %d", &id_o, &id_d, &cost);
+            if(id_o == cfg->id) {
+                cfg->d_v = create_d_v(cfg->d_v, id_d, cost);
+            } else if(id_d == cfg->id) {
+                cfg->d_v = create_d_v(cfg->d_v, id_o, cost);;
+            }
+            c = fgetc(links);
+        }    
+    } else{
+        printf("Arquivo 'links.config' nao pode ser aberto!");
+    }
+    fclose(links);
+
+    c = ' ';
+
+    if(routers) {
+        while(c!=EOF) {
+            fscanf(routers, "%d %d %d %c %d %c %d %c %d", &id_d, &port, &ip_i[0], &dump, &ip_i[1], &dump, &ip_i[2], &dump, &ip_i[3]);
+            sprintf(&ip_c, "%d.%d.%d.%d",ip_i[0], ip_i[1], ip_i[2], ip_i[3]);
+            if(id_d == cfg->id) {
+                strcpy(&cfg->ip, ip_c);
+                cfg->port = port;
+            }
+            cost = get_cost(id_d, cfg->d_v);
+            if(cost>0) {
+                cfg->r_t = create_r_t(cfg->r_t, id_d, ip_c, port);
+            }
+            c = fgetc(routers);
+        }
+    } else{
+        printf("Arquivo 'routers.config' nao pode ser aberto!");
+    }
+
+    fclose(routers);
+
+    return cfg;
+}
+
 void die(char *s) {
     perror(s);
     exit(1);
@@ -188,7 +204,7 @@ void sender(char message[BUFLEN], int DEST_PORT, char DEST_IP[]) {
     close(s);
 }
 
-void receiver(int OWN_PORT) {
+void receiver() {
     struct sockaddr_in si_me, si_other;
      
     int s, i, slen = sizeof(si_other) , recv_len;
@@ -204,7 +220,7 @@ void receiver(int OWN_PORT) {
     memset((char *) &si_me, 0, sizeof(si_me));
      
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(OWN_PORT);
+    si_me.sin_port = htons(configuration->port);
     si_me.sin_addr.s_addr = htonl(INADDR_ANY);
      
     //bind socket to port
@@ -231,47 +247,45 @@ void receiver(int OWN_PORT) {
     close(s);
 }
 
-configs *config(configs *cfg, int id) {
-    FILE* links = fopen("links.config", "r");
-    FILE* routers = fopen("routers.config", "r");
-    int id_o, id_d, cost, x, port, ip_i[4];
-    char c, *temp, ip_c[15], dump;
+void terminal() {
+    int cont=1, opc, dest, port;
+    char msg[BUFLEN], ip[15];
+    rout_tab *temp=NULL;
 
-    if(links) {
-        while(c!=(EOF)) {
-            fscanf(links, "%d %d %d", &id_o, &id_d, &cost);
-            if(id_o == id) {
-                cfg->d_v = create_d_v(cfg->d_v, id_d, cost);
-            } else if(id_d == id) {
-                cfg->d_v = create_d_v(cfg->d_v, id_o, cost);;
-            }
-            c = fgetc(links);
-        }    
-    } else{
-        printf("Arquivo 'links.config' nao pode ser aberto!");
-    }
-    fclose(links);
+    while(cont) {
 
-    c = ' ';
+        printf("\n\tMENU\nROUTER %d: %s\n", configuration->id, configuration->ip);
+        printf("[1] - Enviar mensagem\n");
+        printf("[2] - Listar destinos\n");
+        printf("[0] - Encerrar\n");
+        scanf("%d", &opc);
 
-    if(routers) {
-        while(c!=EOF) {
-            fscanf(routers, "%d %d %d %c %d %c %d %c %d", &id_d, &port, &ip_i[0], &dump, &ip_i[1], &dump, &ip_i[2], &dump, &ip_i[3]);
-            sprintf(&ip_c, "%d.%d.%d.%d",ip_i[0], ip_i[1], ip_i[2], ip_i[3]);
-            if(id_d==id) {
-                strcpy(&cfg->ip, ip_c);
-                cfg->port = port;
-            }
-            cost = get_cost(id_d, cfg->d_v);
-            if(cost>=0)
-                cfg->r_t = create_r_t(cfg->r_t, id_d, ip_c, port, cost);
-            c = fgetc(routers);
+        switch(opc) {
+            case(1):
+                printf("Destino: ");
+                scanf("%d", &dest);
+                printf("Mensagem: ");
+                scanf("%s", msg);
+                sender(msg, get_dest_port(dest, configuration->r_t), get_dest_ip(dest, configuration->r_t));
+                break;
+            case(2):
+                printf("Destinos\n");
+                temp = configuration->r_t;
+                while(temp) {
+                    printf("ID: %d\t", temp->id);
+                    printf("IP: %s\t", temp->ip);
+                    printf("PORT: %d\n", temp->port);
+                    temp = temp->next;
+                }
+                break;
+            case(0):
+                cont = 0;
+                break;
+            default:
+                printf("Opcao invalida!\n");
+                break;
         }
-    } else{
-        printf("Arquivo 'routers.config' nao pode ser aberto!");
     }
 
-    fclose(routers);
-
-    return cfg;
+    printf("Encerrando...\n");
 }

@@ -27,5 +27,5 @@ Digitando "0" os processos serão encerrados e a execução finalizada.
 Para realizar a comunicação entre dois roteadores é necessário ter duas instâncias do programa executadas e com IDs diferentes.
 
 Observações:
-- IDs atribuídos aos roteadores devem existir nos arquivos de configuração (ID disponíveis: 1, 2, 3 e 4).
-- Na implementação atual não é possível mapear a rede para comunicação em mais de um salto ou identificar roteadores ativados ou desativados.
+- IDs atribuídos aos roteadores devem existir nos arquivos de configuração (ID presentes: 1, 2, 3 e 4).
+- Na implementação atual não é possível usar a rede para comunicação de mais de um salto ou identificar roteadores ativados ou desativados.

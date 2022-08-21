@@ -21,6 +21,7 @@ typedef struct router_table {
 
 typedef struct configurations {
     char ip[15];
+    int id;
     int port;
     rout_tab *r_t;
     dist_vec *d_v;
@@ -37,7 +38,7 @@ typedef struct packet {                         // Estrutura do pacote transmiti
 
 dist_vec *create_d_v(dist_vec *d_v, int id, int cost);
 
-rout_tab *create_r_t(rout_tab *r_t, int id, char ip[15], int port, int cost);
+rout_tab *create_r_t(rout_tab *r_t, int id, char ip[15], int cost);
 
 configs *init_cfg();
 
@@ -47,12 +48,14 @@ int get_dest_port(int dest, rout_tab *r_t);
 
 char *get_dest_ip(int dest, rout_tab *r_t);
 
+configs *config(configs *cfg);
+
 void die(char *s);
 
 void sender(char message[BUFLEN], int DEST_PORT, char DEST_IP[]);
 
-void receiver(int OWN_PORT);
+void receiver();
 
-configs *config(configs *cfg, int id);
+void terminal();
 
 #endif
