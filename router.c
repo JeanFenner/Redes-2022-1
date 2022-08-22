@@ -77,6 +77,19 @@ rout_tab *create_r_t(rout_tab *r_t, int id, char ip[15], int port) {   // Criaç
     return new;
 }
 
+packets *create_packet(int type, char o_ip[15], int o_port, char d_ip[15], int d_port, char message[MSGLEN]) {
+    packets *new = (packets *)malloc(sizeof(packets));    
+
+    new->type = type;
+    strcpy(&new->o_ip, o_ip);
+    new->o_port = o_port;
+    strcpy(&new->d_ip, d_ip);
+    new->d_port = d_port;
+    strcpy(&new->message, message);
+
+    return new;
+}
+
 configs *init_cfg() {                           // Inicializaçao de estrutura
     configs *cfg = (configs *)malloc(sizeof(configs));
 
@@ -176,7 +189,6 @@ void die(char *s) {
 void sender(char message[BUFLEN], int DEST_PORT, char DEST_IP[]) {
     struct sockaddr_in si_other;
     int s, i, slen=sizeof(si_other);
-    char buf[BUFLEN];
 
     if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
@@ -198,9 +210,7 @@ void sender(char message[BUFLEN], int DEST_PORT, char DEST_IP[]) {
     {
         die("sendto()");
     }
-    //clear the buffer by filling null
-    memset(buf,'\0', BUFLEN);
-    
+
     close(s);
 }
 
@@ -241,7 +251,7 @@ void receiver() {
         }
          
         //print details of the client/peer and the data received
-        printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
+        printf("Mensagem de %s\n", inet_ntoa(si_other.sin_addr));
         printf("Data: %s\n" , buf);
 
     close(s);
@@ -250,7 +260,8 @@ void receiver() {
 void terminal() {
     int cont=1, opc, dest, port;
     char msg[BUFLEN], ip[15];
-    rout_tab *temp=NULL;
+    rout_tab *temp = NULL;
+    packets *pckt = NULL;
 
     while(cont) {
 
@@ -266,7 +277,8 @@ void terminal() {
                 scanf("%d", &dest);
                 printf("Mensagem: ");
                 scanf("%s", msg);
-                sender(msg, get_dest_port(dest, configuration->r_t), get_dest_ip(dest, configuration->r_t));
+                pckt = create_packet(1, configuration->ip, configuration->port, get_dest_ip(dest, configuration->r_t), get_dest_port(dest, configuration->r_t), msg);
+                sender(pckt->message, get_dest_port(dest, configuration->r_t), get_dest_ip(dest, configuration->r_t));
                 break;
             case(2):
                 printf("Destinos\n");
